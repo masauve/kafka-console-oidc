@@ -1,0 +1,42 @@
+---
+apiVersion: console.streamshub.github.com/v1alpha1
+kind: Console
+metadata:
+  name: example
+spec:
+  hostname: kafka-console.apps.${{DOMAIN_NAME}}
+
+  containers:
+    api:
+      spec:
+        env:
+          - name: REMOTE_KAFKA_SASL_JAAS_CONFIG
+            valueFrom:
+              secretKeyRef:
+                key: REMOTE_KAFKA_SASL_JAAS_CONFIG
+                name: remote-kafka-secrets
+          - name: OAUTH_ALLOW_ANONYMOUS
+            value: 'false'
+  kafkaClusters:
+    - name: remote-kafka               # Name of the Kafka cluster as it will appear in the UI
+      properties:
+        values:
+          - name: bootstrap.servers
+            value: ${{BOOTSTRAP_URL}}
+          - name: security.protocol
+            value: SASL_SSL
+          - name: sasl.mechanism
+            value: OAUTHBEARER
+          - name: sasl.login.callback.handler.class
+            value: io.strimzi.kafka.oauth.client.JaasClientOauthLoginCallbackHandler
+          - name: sasl.jaas.config
+            # the property reference is converted to an env name by replacing non-alphanumeric charaters to `_` and
+            # performing an upper-case conversion on the alpha characters.
+            value: "${remote.kafka.sasl.jaas.config}"
+          - name: ssl.truststore.type
+            value: PEM
+          - name: ssl.truststore.certificates
+            value: |
+              -----BEGIN CERTIFICATE-----
+               INSERT BOOTSTRAP CERT
+              -----END CERTIFICATE-----
